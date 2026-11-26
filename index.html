@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>스터디 플래너</title>
+<style>
+:root{
+  --bg:#f4f6fb; --surface:#ffffff; --text:#1b2333; --muted:#6b7588; --line:#e4e8f0;
+  --brand:#4f6df5; --brand-soft:#e9edff; --brand-ink:#ffffff; --danger:#e5484d; --ok:#2fa56b;
+  --shadow:0 1px 2px rgba(20,30,60,.05),0 6px 20px rgba(20,30,60,.06);
+  --r:16px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#10131b; --surface:#181c27; --text:#eef1f8; --muted:#8e98ad; --line:#272d3b;
+    --brand:#7b92ff; --brand-soft:#232a4a; --brand-ink:#0e1220; --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);}
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",system-ui,sans-serif;
+  background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+.app{max-width:640px;margin:0 auto;min-height:100%;padding:28px 20px 110px}
+h1{font-size:28px;letter-spacing:-.02em;font-weight:800}
+h2{font-size:17px;font-weight:700;margin:28px 0 12px;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:14px;margin-top:6px}
+.view{display:none;animation:in .25s ease}
+.view.active{display:block}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:18px}
+.hero{background:linear-gradient(135deg,var(--brand),#8a6cf0);color:#fff;border-radius:22px;padding:22px;margin-top:18px;
+  box-shadow:0 10px 30px rgba(79,109,245,.3)}
+.hero small{opacity:.85;font-size:13px}
+.hero .big{font-size:38px;font-weight:800;margin:4px 0 14px;letter-spacing:-.03em}
+.bar{height:8px;background:rgba(255,255,255,.28);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:#fff;border-radius:99px;transition:width .4s}
+
+button{font:inherit;cursor:pointer;border:0;transition:transform .08s,opacity .15s,background .15s}
+button:active{transform:scale(.97)}
+.btn{background:var(--brand);color:var(--brand-ink);padding:13px 20px;border-radius:12px;font-weight:700;font-size:15px}
+.btn.block{width:100%;margin-top:6px}
+.btn.ghost{background:var(--brand-soft);color:var(--brand)}
+.hero .btn{background:#fff;color:var(--brand);margin-top:16px}
+.mini{background:var(--brand-soft);color:var(--brand);border-radius:9px;padding:7px 12px;font-size:13px;font-weight:600}
+.mini.danger{background:transparent;color:var(--danger)}
+
+.task{display:flex;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+.task:last-child{border:0}
+.dot{width:12px;height:12px;border-radius:50%;flex:none}
+.task .t{flex:1;min-width:0}
+.task .t b{display:block;font-size:15px}
+.task .t span{font-size:12.5px;color:var(--muted)}
+.chk{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);background:none;flex:none;color:#fff;font-size:14px;line-height:1}
+.chk.on{background:var(--ok);border-color:var(--ok)}
+.task.done .t b{text-decoration:line-through;color:var(--muted)}
+.steps{margin:6px 0 0 0;padding-left:0;list-style:none}
+.steps li{font-size:12.5px;color:var(--muted);padding:2px 0}
+.empty{color:var(--muted);font-size:14px;padding:10px 0;text-align:center}
+
+details{background:var(--surface);border-radius:14px;box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden}
+summary{list-style:none;cursor:pointer;padding:15px 18px;font-weight:700;font-size:15px;display:flex;align-items:center;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .2s}
+details[open] summary::before{transform:rotate(45deg)}
+summary em{margin-left:auto;font-style:normal;font-weight:500;font-size:13px;color:var(--muted)}
+details .body{padding:0 18px 12px}
+
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+input,select,textarea{width:100%;font:inherit;font-size:15px;color:var(--text);background:var(--bg);border:1.5px solid transparent;
+  border-radius:12px;padding:12px 14px;outline:none;transition:border .15s,background .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);background:var(--surface)}
+textarea{min-height:88px;resize:vertical}
+select{-webkit-appearance:none;appearance:none;padding-right:48px;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238e98ad' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 22px center;background-size:16px}
+select.langpick[style*="width:auto"]{padding-right:38px;background-position:right 14px center}
+.row{display:flex;gap:12px}.row>*{flex:1}
+input[type=color]{padding:0;width:44px;height:44px;flex:none;border-radius:12px;cursor:pointer;background:none}
+
+.srow{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.srow input[type=time]{padding:10px 8px}
+.srow span{color:var(--muted)}
+.core{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);white-space:nowrap;margin:0;font-weight:500}
+.core input{width:auto}
+.hint{font-size:13px;color:var(--muted);margin:-4px 0 12px}
+
+nav{position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);display:flex;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));z-index:5}
+nav button{flex:1;background:none;color:var(--muted);padding:8px 4px;border-radius:12px;font-size:12.5px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button.active{color:var(--brand);background:var(--brand-soft)}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);
+  padding:11px 18px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:9}
+.toast.show{opacity:1;transform:translateX(-50%)}
+[hidden]{display:none!important}
+#auth{position:fixed;inset:0;z-index:20;min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px;
+  overflow:auto;background:rgba(10,15,30,.58);backdrop-filter:blur(8px)}
+#onb{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(900px 500px at 20% -10%,var(--brand-soft),transparent),var(--bg)}
+.auth-box{background:var(--bg);border-radius:22px;padding:18px;width:100%;max-width:440px;box-shadow:var(--shadow)}
+.auth-close{display:flex;justify-content:flex-end;margin-bottom:8px}
+.auth-close button{background:var(--brand-soft);color:var(--brand);border-radius:9px;padding:7px 12px;font-weight:700}
+.security-note{font-size:12px;line-height:1.55;color:var(--muted);background:var(--bg);padding:11px 12px;border-radius:10px;margin-top:12px}
+.account-actions{display:flex;gap:8px;margin-top:14px}
+.account-actions button{flex:1}
+.auth-box{width:100%;max-width:400px}
+.logo{font-size:54px;text-align:center;margin-bottom:6px}
+.auth-box h1{text-align:center;font-size:26px}
+.auth-box .sub{text-align:center;margin-bottom:22px}
+.tabs{display:flex;background:var(--bg);border-radius:12px;padding:4px;margin-bottom:6px}
+.tabs button{flex:1;background:none;padding:10px;border-radius:9px;color:var(--muted);font-weight:700;font-size:14px}
+.tabs button.on{background:var(--surface);color:var(--brand);box-shadow:var(--shadow)}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12.5px;margin:18px 0 14px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--surface);color:var(--text);
+  border:1.5px solid var(--line);padding:12px;border-radius:12px;font-weight:700;font-size:15px}
+.gbtn svg{width:20px;height:20px}
+#gwrap{display:flex;justify-content:center}
+.err{color:var(--danger);font-size:13px;margin-top:10px;min-height:18px;text-align:center}
+.profile{display:flex;gap:14px;align-items:center}
+.avatar{width:64px;height:64px;border-radius:20px;background:var(--brand-soft);display:flex;align-items:center;justify-content:center;font-size:36px;flex:none}
+.profile .who{flex:1;min-width:0}
+.profile .who small{color:var(--muted);font-size:12px}
+.profile .who b{display:block;font-size:18px;overflow:hidden;text-overflow:ellipsis}
+.grade{display:inline-block;margin-top:4px;background:var(--brand-soft);color:var(--brand);font-weight:800;font-size:13px;padding:4px 10px;border-radius:99px}
+.gbar{height:8px;background:var(--bg);border-radius:99px;overflow:hidden;margin:16px 0 6px}
+.gbar i{display:block;height:100%;background:linear-gradient(90deg,#4cc38a,var(--brand));border-radius:99px;transition:width .5s}
+.gnote{font-size:12.5px;color:var(--muted)}
+.ladder{display:flex;justify-content:space-between;margin-top:14px;font-size:22px}
+.ladder span{opacity:.28;filter:grayscale(1);transition:.2s}
+.ladder span.on{opacity:1;filter:none}
+.ladder{align-items:flex-end}
+.ladder span{display:block;line-height:0}
+.ladder span.cur{transform:scale(1.25);transform-origin:bottom}
+.avatar svg,.logo svg{display:block}
+.logo{display:flex;justify-content:center}
+details.rules{box-shadow:none;background:var(--bg);margin:16px 0 0}
+details.rules summary{padding:11px 14px;font-size:13px}
+details.rules .body{padding:0 14px 12px}
+details.rules ul{list-style:none;padding:0;font-size:13px;color:var(--muted);line-height:1.9}
+details.rules b{color:var(--ok)}details.rules b.neg{color:var(--danger)}
+.dots{display:flex;gap:6px;justify-content:center;margin-bottom:14px}
+.dots i{width:30px;height:6px;border-radius:99px;background:var(--line);transition:.2s}
+.dots i.on{background:var(--brand)}
+.keep{display:flex;gap:10px;align-items:flex-start;background:var(--brand-soft);border:2px solid var(--brand);border-radius:14px;padding:12px 14px;margin-top:18px;font-size:13.5px;line-height:1.5;color:var(--text)}
+.keep b{display:block;color:var(--brand);font-size:15px;margin-bottom:2px}
+#onb .card h1{font-size:22px}
+#onb .card h2{margin-top:20px}
+</style>
+</head>
+<body>
+<div id="auth" hidden>
+  <div class="auth-box">
+    <div class="auth-close"><button type="button" id="closeAuth">닫기</button></div>
+    <div style="text-align:right;margin-bottom:10px"><select class="langpick" style="width:auto;padding:8px 12px;font-size:13px"></select></div>
+    <div class="logo" id="logoSvg"></div>
+    <h1>스터디 플래너</h1>
+    <p class="sub">공부할수록 식물이 자라요</p>
+    <div class="card">
+      <div class="tabs"><button class="on" id="tLogin">로그인</button><button id="tSignup">회원가입</button></div>
+      <label>이메일</label><input id="aId" type="email" autocomplete="email" placeholder="name@example.com">
+      <div id="nameBox" hidden><label>닉네임</label><input id="aName" placeholder="표시될 이름"></div>
+      <label>비밀번호</label><input id="aPw" type="password" autocomplete="current-password" placeholder="6자 이상">
+      <button class="btn block" style="margin-top:18px" id="aGo">로그인</button>
+      <div class="or">또는</div>
+      <div id="gwrap"></div>
+      <button class="gbtn" id="gFallback" hidden>
+        <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+        Google로 계속하기</button>
+      <p class="err" id="aErr"></p>
+      <p class="security-note">보안 안내: 계정은 Firebase Authentication에서 관리하고 비밀번호 원문은 앱이나 공부 데이터베이스에 저장하지 않습니다. 공부 데이터는 로그인한 계정의 UID에 연결해 Firestore에 저장합니다.</p>
+    </div>
+  </div>
+</div>
+<div id="onb" hidden>
+  <div class="auth-box" style="max-width:460px">
+    <div style="text-align:right;margin-bottom:10px"><select class="langpick" style="width:auto;padding:8px 12px;font-size:13px"></select></div>
+    <div class="dots" id="oDots"><i></i><i></i><i></i></div>
+    <div class="card" id="oS1">
+      <h1>어떤 과목을 공부해?</h1>
+      <p class="sub" style="text-align:left;margin-bottom:14px">과목 이름을 적고 색을 골라줘. 색은 할 일을 구분하는 데 써.</p>
+      <div id="oSubj"></div>
+      <button class="mini" id="oAddSubj">+ 과목 추가</button>
+      <div class="keep"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><div><b>나중에 설정에서 언제든 바꿀 수 있어요</b>지금 정한 내용은 설정 탭에서 마음대로 고칠 수 있어. 부담 갖지 마!</div></div>
+    </div>
+    <div class="card" id="oS2" hidden>
+      <h1>생일이 언제야?</h1>
+      <p class="sub" style="text-align:left">나이에 맞는 권장 수면 시간을 계산해서 공부 시간을 짜줄게.</p>
+      <label>생일</label><input type="date" id="oBirth">
+      <label>일어나는 시간</label><input type="time" id="oWake">
+      <label>학교·수업이 끝나는 시간</label><input type="time" id="oSchool">
+    </div>
+    <div class="card" id="oS3" hidden>
+      <h1>공부 가능한 시간을 정하자</h1>
+      <p class="sub" style="text-align:left;margin-bottom:4px" id="oSleep"></p>
+      <p class="hint" style="margin-top:8px">수면 시간을 지키도록 추천했어. 마음대로 고쳐도 돼.</p>
+      <h2>평일 공부 가능 시간</h2><div id="oWd"></div>
+      <button class="mini" id="oAddWd">+ 시간 추가</button>
+      <h2>주말 공부 가능 시간</h2><div id="oWe"></div>
+      <button class="mini" id="oAddWe">+ 시간 추가</button>
+      <div class="keep"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><div><b>나중에 설정에서 언제든 바꿀 수 있어요</b>지금 정한 내용은 설정 탭에서 마음대로 고칠 수 있어. 부담 갖지 마!</div></div>
+    </div>
+    <div class="row" style="margin-top:14px"><button class="btn ghost" id="oBack">이전</button><button class="btn" id="oNext">다음</button></div>
+    <p class="err" id="oErr"></p>
+  </div>
+</div>
+<div id="appRoot">
+<div class="app">
+
+  <section class="view active" id="v-today">
+    <h1>오늘</h1>
+    <p class="sub" id="todayMeta"></p>
+    <div class="hero">
+      <small>오늘 남은 공부 시간</small>
+      <div class="big" id="heroHours">0시간</div>
+      <div class="bar"><i id="heroBar" style="width:0"></i></div>
+      <button class="btn" id="calBtn">캘린더로 알림 받기</button>
+    </div>
+    <div class="card" style="margin-top:16px" id="todayList"></div>
+    <h2>이번 주 계획</h2>
+    <div id="weekList"></div>
+  </section>
+
+  <section class="view" id="v-add">
+    <h1>할 일 추가</h1>
+    <div class="card" style="margin-top:18px">
+      <label style="margin-top:0">제목</label>
+      <input id="fTitle" placeholder="예: 수학 문제집 3단원">
+      <label>과목</label>
+      <select id="fSubject"></select>
+      <div class="row">
+        <div><label>마감 날짜</label><input type="date" id="fDate"></div>
+        <div><label>마감 시간</label><input type="time" id="fTime" value="08:00"></div>
+      </div>
+      <label>예상 소요 시간 (시간)</label>
+      <input type="number" id="fHours" min="0.5" step="0.5" value="2">
+      <label>세부 단계 (한 줄에 하나, 비워도 돼)</label>
+      <textarea id="fSteps" placeholder="문제 풀기&#10;오답 정리"></textarea>
+      <button class="btn block" style="margin-top:18px" id="addBtn">할 일 추가</button>
+    </div>
+  </section>
+
+  <section class="view" id="v-todo">
+    <h1>해야 할 일</h1>
+    <p class="sub" id="todoMeta"></p>
+    <div class="card" style="margin-top:18px" id="todoList"></div>
+  </section>
+
+  <section class="view" id="v-set">
+    <h1>설정</h1>
+    <div class="card" style="margin-top:18px">
+      <div class="profile">
+        <div class="avatar" id="pEmoji"></div>
+        <div class="who"><small id="accountState">현재 기기에서 사용 중</small><b id="pId">게스트</b><span class="grade" id="pGrade"></span></div>
+      </div>
+      <div class="account-actions" id="guestActions">
+        <button class="btn" id="openLogin">로그인</button>
+        <button class="btn ghost" id="openSignup">회원가입</button>
+      </div>
+      <button class="mini danger" id="logoutBtn" hidden>로그아웃</button>
+      <p class="security-note">로그인하면 공부 데이터가 Firebase에 계정별로 저장되어 다른 기기에서도 불러올 수 있습니다. 다른 사용자는 보안 규칙에 따라 내 데이터에 접근할 수 없습니다. 프로젝트 관리자는 서비스 운영상 데이터에 접근할 수 있으므로 비밀번호 등 민감한 정보는 공부 데이터에 적지 마세요.</p>
+      <div class="gbar"><i id="pBar" style="width:0"></i></div>
+      <p class="gnote" id="pNote"></p>
+      <div class="ladder" id="pLadder"></div>
+      <details class="rules"><summary>포인트 쌓는 법</summary>
+        <div class="body"><ul>
+          <li>마감 7일 이상 전에 완료 <b>+20</b></li>
+          <li>5일 전 <b>+15</b> · 3일 전 <b>+10</b> · 1일 전 <b>+5</b></li>
+          <li>마감 당일 <b>+1</b></li>
+          <li>마감이 지난 뒤 완료 <b class="neg">-5</b></li>
+        </ul></div></details>
+    </div>
+    <h2>언어</h2>
+    <div class="card"><select class="langpick"></select></div>
+
+    <h2>수면과 생일</h2>
+    <div class="card">
+      <div class="row"><div><label style="margin-top:0">생일</label><input type="date" id="sBirth"></div>
+      <div><label style="margin-top:0">일어나는 시간</label><input type="time" id="sWake"></div></div>
+      <p class="hint" id="sInfo" style="margin:12px 0"></p>
+      <button class="mini" id="sRe">공부 시간 다시 추천받기</button>
+    </div>
+
+    <h2>과목</h2>
+    <div class="card" id="subjList"></div>
+    <button class="mini" style="margin-top:10px" id="addSubj">+ 과목 추가</button>
+
+    <h2>평일 공부 가능 시간</h2>
+    <p class="hint">수업, 식사, 취침 시간은 넣지 마. "핵심"은 먼저 채울 시간이야.</p>
+    <div class="card" id="wdList"></div>
+    <button class="mini" style="margin-top:10px" id="addWd">+ 시간 추가</button>
+
+    <h2>주말 공부 가능 시간</h2>
+    <div class="card" id="weList"></div>
+    <button class="mini" style="margin-top:10px" id="addWe">+ 시간 추가</button>
+
+    <h2>데이터</h2>
+    <button class="mini danger" id="resetBtn">모든 데이터 초기화</button>
+  </section>
+</div>
+
+<nav id="nav">
+  <button data-v="today" class="active"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>오늘</button>
+  <button data-v="add"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>할 일 추가</button>
+  <button data-v="todo"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>해야 할 일</button>
+  <button data-v="set"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14.2 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5a7 7 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2 1.2l.4 2.6h4l.4-2.6a7 7 0 0 0 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>설정</button>
+</nav>
+</div>
+<div class="toast" id="toast"></div>
+
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyClGcolEmK7QaaritUxLIYCUbL7nsQrXWQ",
+  authDomain: "study-planner-d721e.firebaseapp.com",
+  projectId: "study-planner-d721e",
+  storageBucket: "study-planner-d721e.firebasestorage.app",
+  messagingSenderId: "575870606417",
+  appId: "1:575870606417:web:4a0d2481a476d897eb2c70",
+  measurementId: "G-540GZ8EVQT"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.error);
+let pendingGuestData = null;
+let cloudSaveQueue = Promise.resolve();
+
+const KEY='study-planner-v2';
+let LANG='ko';try{LANG=localStorage.getItem('sp-lang')||'ko'}catch(e){}
+const LANGS={ko:'한국어',en:'English',ja:'日本語',zh:'中文',es:'Español'};
+if(!LANGS[LANG])LANG='ko';
+const TR={"en": {"스터디 플래너": "Study Planner", "공부할수록 식물이 자라요": "Study more, grow your plant", "로그인": "Log in", "회원가입": "Sign up", "아이디": "Username", "영문/숫자 3자 이상": "3+ letters or numbers", "닉네임": "Nickname", "표시될 이름": "Display name", "비밀번호": "Password", "6자 이상": "6+ characters", "또는": "or", "Google로 계속하기": "Continue with Google", "오늘": "Today", "오늘 남은 공부 시간": "Study time left today", "캘린더로 알림 받기": "Get calendar reminders", "이번 주 계획": "This week", "할 일 추가": "Add task", "제목": "Title", "예: 수학 문제집 3단원": "e.g. Math workbook ch. 3", "과목": "Subject", "마감 날짜": "Due date", "마감 시간": "Due time", "예상 소요 시간 (시간)": "Estimated time (hours)", "세부 단계 (한 줄에 하나, 비워도 돼)": "Steps (one per line, optional)", "문제 풀기\n오답 정리": "Solve problems\nReview mistakes", "해야 할 일": "To do", "설정": "Settings", "로그아웃": "Log out", "포인트 쌓는 법": "How to earn points", "마감 7일 이상 전에 완료": "Done 7+ days early", "5일 전": "5 days early", "· 3일 전": "· 3 days", "· 1일 전": "· 1 day", "마감 당일": "Due day", "마감이 지난 뒤 완료": "Done after the deadline", "언어": "Language", "+ 과목 추가": "+ Add subject", "평일 공부 가능 시간": "Weekday study hours", "수업, 식사, 취침 시간은 넣지 마. \"핵심\"은 먼저 채울 시간이야.": "Leave out class, meals and sleep. \"Core\" slots get filled first.", "주말 공부 가능 시간": "Weekend study hours", "+ 시간 추가": "+ Add slot", "데이터": "Data", "모든 데이터 초기화": "Reset all data", "시간": "h", "남은 공부": "Study left", "배정 없음": "Nothing scheduled", "비어 있는 날이야": "A free day", "오늘 남은 시간에 배정된 할 일이 없어.<br>할 일 추가 탭에서 추가해봐.": "Nothing scheduled for the rest of today.<br>Add tasks in the Add task tab.", "할 일이 없어요. 할 일 추가 탭에서 넣어봐.": "No tasks yet. Add some in the Add task tab.", "삭제": "Delete", "핵심": "Core", "새 과목": "New subject", "모든 데이터를 초기화할까요?": "Reset all data?", "초기화했어요": "Data reset", "제목을 입력해줘": "Please enter a title", "할 일을 추가했어요": "Task added", "알림 받을 할 일이 없어요": "No tasks to remind you of", "아이디는 3자 이상이어야 해요": "Username must be at least 3 characters", "비밀번호는 6자 이상이어야 해요": "Password must be at least 6 characters", "이미 있는 아이디예요": "That username is taken", "이메일 또는 비밀번호가 맞지 않아요": "Wrong username or password", "가입을 환영해요": "Welcome aboard", "구글 로그인 완료": "Signed in with Google", "구글 로그인에 실패했어요": "Google sign-in failed", "구글 로그인은 GOOGLE_CLIENT_ID 설정 후 사용할 수 있어요": "Set GOOGLE_CLIENT_ID to enable Google sign-in", "씨앗": "Seed", "새싹": "Sprout", "잎": "Leaf", "식물": "Plant", "꽃": "Flower", "큰 나무": "Big Tree", "사과나무": "Apple Tree", "{0}개 · {1}시간": "{0} task(s) · {1}h", "남은 일 {0}개": "{0} left", "남은 일 {0}개 · 총 {1}시간": "{0} left · {1}h total", "{0}점": "{0} pts", "{0}점 · {1}까지 {2}점 남았어요": "{0} pts · {2} pts to {1}", "{0}점 · 최고 등급이에요!": "{0} pts · Top grade!", "{0} ({1}점~)": "{0} ({1} pts+)", "어떤 과목을 공부해?": "Which subjects do you study?", "과목 이름을 적고 색을 골라줘. 색은 할 일을 구분하는 데 써.": "Enter your subjects and pick a color for each. Colors help tell tasks apart.", "예: 수학": "e.g. Math", "나중에 설정에서 언제든 바꿀 수 있어요": "You can change this anytime in Settings later", "지금 정한 내용은 설정 탭에서 마음대로 고칠 수 있어. 부담 갖지 마!": "Whatever you choose now can be edited freely in the Settings tab. No pressure!", "다음": "Next", "이전": "Back", "시작하기": "Get started", "생일이 언제야?": "When's your birthday?", "나이에 맞는 권장 수면 시간을 계산해서 공부 시간을 짜줄게.": "We'll work out the sleep you need for your age and plan study time around it.", "생일": "Birthday", "일어나는 시간": "Wake-up time", "학교·수업이 끝나는 시간": "School / class ends at", "공부 가능한 시간을 정하자": "Set your study hours", "수면 시간을 지키도록 추천했어. 마음대로 고쳐도 돼.": "Suggested so you still get enough sleep. Feel free to edit.", "{0}세 · 권장 수면 {1}시간 · 취침 {2}": "Age {0} · Recommended sleep {1}h · Bedtime {2}", "과목을 하나 이상 입력해줘": "Enter at least one subject", "생일을 입력해줘": "Please enter your birthday", "올바른 생일이 아니에요": "That birthday doesn't look right", "공부 가능 시간을 하나 이상 넣어줘": "Add at least one study slot", "수면과 생일": "Sleep & birthday", "공부 시간 다시 추천받기": "Re-suggest study hours", "다시 추천했어요": "Suggestions updated"}, "ja": {"스터디 플래너": "スタディプランナー", "공부할수록 식물이 자라요": "勉強するほど植物が育つよ", "로그인": "ログイン", "회원가입": "新規登録", "아이디": "ユーザーID", "영문/숫자 3자 이상": "英数字3文字以上", "닉네임": "ニックネーム", "표시될 이름": "表示される名前", "비밀번호": "パスワード", "6자 이상": "6文字以上", "또는": "または", "Google로 계속하기": "Googleで続ける", "오늘": "今日", "오늘 남은 공부 시간": "今日の残り勉強時間", "캘린더로 알림 받기": "カレンダーで通知を受け取る", "이번 주 계획": "今週の計画", "할 일 추가": "タスクを追加", "제목": "タイトル", "예: 수학 문제집 3단원": "例：数学の問題集 第3章", "과목": "科目", "마감 날짜": "締切日", "마감 시간": "締切時刻", "예상 소요 시간 (시간)": "予想所要時間（時間）", "세부 단계 (한 줄에 하나, 비워도 돼)": "詳細ステップ（1行に1つ、空欄でもOK）", "문제 풀기\n오답 정리": "問題を解く\n間違い直し", "해야 할 일": "やること", "설정": "設定", "로그아웃": "ログアウト", "포인트 쌓는 법": "ポイントの貯め方", "마감 7일 이상 전에 완료": "締切7日以上前に完了", "5일 전": "5日前", "· 3일 전": "· 3日前", "· 1일 전": "· 1日前", "마감 당일": "締切当日", "마감이 지난 뒤 완료": "締切後に完了", "언어": "言語", "+ 과목 추가": "＋科目を追加", "평일 공부 가능 시간": "平日の勉強可能時間", "수업, 식사, 취침 시간은 넣지 마. \"핵심\"은 먼저 채울 시간이야.": "授業・食事・睡眠の時間は入れないでね。「重点」は先に埋める時間だよ。", "주말 공부 가능 시간": "週末の勉強可能時間", "+ 시간 추가": "＋時間を追加", "데이터": "データ", "모든 데이터 초기화": "すべてのデータを初期化", "시간": "時間", "남은 공부": "残り勉強", "배정 없음": "予定なし", "비어 있는 날이야": "空いている日だよ", "오늘 남은 시간에 배정된 할 일이 없어.<br>할 일 추가 탭에서 추가해봐.": "今日の残り時間に予定されたタスクはないよ。<br>「タスクを追加」タブで追加してね。", "할 일이 없어요. 할 일 추가 탭에서 넣어봐.": "タスクがまだないよ。「タスクを追加」タブで入れてね。", "삭제": "削除", "핵심": "重点", "새 과목": "新しい科目", "모든 데이터를 초기화할까요?": "すべてのデータを初期化しますか？", "초기화했어요": "初期化しました", "제목을 입력해줘": "タイトルを入力してね", "할 일을 추가했어요": "タスクを追加したよ", "알림 받을 할 일이 없어요": "通知するタスクがないよ", "아이디는 3자 이상이어야 해요": "ユーザーIDは3文字以上必要です", "비밀번호는 6자 이상이어야 해요": "パスワードは6文字以上必要です", "이미 있는 아이디예요": "このIDは既に使われています", "이메일 또는 비밀번호가 맞지 않아요": "IDまたはパスワードが違います", "가입을 환영해요": "ようこそ", "구글 로그인 완료": "Googleでログインしました", "구글 로그인에 실패했어요": "Googleログインに失敗しました", "구글 로그인은 GOOGLE_CLIENT_ID 설정 후 사용할 수 있어요": "GOOGLE_CLIENT_IDを設定するとGoogleログインが使えます", "씨앗": "種", "새싹": "新芽", "잎": "葉", "식물": "植物", "꽃": "花", "큰 나무": "大きな木", "사과나무": "リンゴの木", "{0}개 · {1}시간": "{0}件・{1}時間", "남은 일 {0}개": "残り{0}件", "남은 일 {0}개 · 총 {1}시간": "残り{0}件・合計{1}時間", "{0}점": "{0}ポイント", "{0}점 · {1}까지 {2}점 남았어요": "{0}ポイント・{1}まであと{2}ポイント", "{0}점 · 최고 등급이에요!": "{0}ポイント・最高ランクです！", "{0} ({1}점~)": "{0}（{1}ポイント〜）", "어떤 과목을 공부해?": "どの科目を勉強する？", "과목 이름을 적고 색을 골라줘. 색은 할 일을 구분하는 데 써.": "科目名を入力して色を選んでね。色はタスクの区別に使うよ。", "예: 수학": "例：数学", "나중에 설정에서 언제든 바꿀 수 있어요": "あとで設定からいつでも変更できます", "지금 정한 내용은 설정 탭에서 마음대로 고칠 수 있어. 부담 갖지 마!": "今決めた内容は設定タブで自由に直せるよ。気楽にいこう！", "다음": "次へ", "이전": "戻る", "시작하기": "はじめる", "생일이 언제야?": "誕生日はいつ？", "나이에 맞는 권장 수면 시간을 계산해서 공부 시간을 짜줄게.": "年齢に合った推奨睡眠時間を計算して、勉強時間を組むね。", "생일": "誕生日", "일어나는 시간": "起きる時間", "학교·수업이 끝나는 시간": "学校・授業が終わる時間", "공부 가능한 시간을 정하자": "勉強できる時間を決めよう", "수면 시간을 지키도록 추천했어. 마음대로 고쳐도 돼.": "睡眠時間を守れるように提案したよ。自由に直してね。", "{0}세 · 권장 수면 {1}시간 · 취침 {2}": "{0}歳・推奨睡眠{1}時間・就寝{2}", "과목을 하나 이상 입력해줘": "科目を1つ以上入力してね", "생일을 입력해줘": "誕生日を入力してね", "올바른 생일이 아니에요": "正しい誕生日ではありません", "공부 가능 시간을 하나 이상 넣어줘": "勉強できる時間を1つ以上入れてね", "수면과 생일": "睡眠と誕生日", "공부 시간 다시 추천받기": "勉強時間を再提案してもらう", "다시 추천했어요": "再提案したよ"}, "zh": {"스터디 플래너": "学习计划", "공부할수록 식물이 자라요": "学得越多，植物长得越大", "로그인": "登录", "회원가입": "注册", "아이디": "用户名", "영문/숫자 3자 이상": "至少3个字母或数字", "닉네임": "昵称", "표시될 이름": "显示名称", "비밀번호": "密码", "6자 이상": "至少6个字符", "또는": "或", "Google로 계속하기": "使用 Google 继续", "오늘": "今天", "오늘 남은 공부 시간": "今天剩余学习时间", "캘린더로 알림 받기": "通过日历获取提醒", "이번 주 계획": "本周计划", "할 일 추가": "添加任务", "제목": "标题", "예: 수학 문제집 3단원": "例如：数学练习册第3单元", "과목": "科目", "마감 날짜": "截止日期", "마감 시간": "截止时间", "예상 소요 시간 (시간)": "预计耗时（小时）", "세부 단계 (한 줄에 하나, 비워도 돼)": "详细步骤（每行一个，可留空）", "문제 풀기\n오답 정리": "做题\n整理错题", "해야 할 일": "待办", "설정": "设置", "로그아웃": "退出登录", "포인트 쌓는 법": "如何获得积分", "마감 7일 이상 전에 완료": "截止前7天以上完成", "5일 전": "提前5天", "· 3일 전": "· 提前3天", "· 1일 전": "· 提前1天", "마감 당일": "截止当天", "마감이 지난 뒤 완료": "截止后完成", "언어": "语言", "+ 과목 추가": "+ 添加科目", "평일 공부 가능 시간": "工作日可学习时间", "수업, 식사, 취침 시간은 넣지 마. \"핵심\"은 먼저 채울 시간이야.": "不要填入上课、吃饭、睡觉的时间。“核心”时段会优先安排。", "주말 공부 가능 시간": "周末可学习时间", "+ 시간 추가": "+ 添加时段", "데이터": "数据", "모든 데이터 초기화": "重置所有数据", "시간": "小时", "남은 공부": "剩余学习", "배정 없음": "暂无安排", "비어 있는 날이야": "空闲的一天", "오늘 남은 시간에 배정된 할 일이 없어.<br>할 일 추가 탭에서 추가해봐.": "今天剩余时间没有安排任务。<br>去“添加任务”页添加吧。", "할 일이 없어요. 할 일 추가 탭에서 넣어봐.": "还没有任务，去“添加任务”页添加吧。", "삭제": "删除", "핵심": "核心", "새 과목": "新科目", "모든 데이터를 초기화할까요?": "要重置所有数据吗？", "초기화했어요": "已重置", "제목을 입력해줘": "请输入标题", "할 일을 추가했어요": "已添加任务", "알림 받을 할 일이 없어요": "没有需要提醒的任务", "아이디는 3자 이상이어야 해요": "用户名至少需要3个字符", "비밀번호는 6자 이상이어야 해요": "密码至少需要6个字符", "이미 있는 아이디예요": "该用户名已被使用", "이메일 또는 비밀번호가 맞지 않아요": "用户名或密码不正确", "가입을 환영해요": "欢迎加入", "구글 로그인 완료": "已通过 Google 登录", "구글 로그인에 실패했어요": "Google 登录失败", "구글 로그인은 GOOGLE_CLIENT_ID 설정 후 사용할 수 있어요": "设置 GOOGLE_CLIENT_ID 后才能使用 Google 登录", "씨앗": "种子", "새싹": "嫩芽", "잎": "叶子", "식물": "植物", "꽃": "花", "큰 나무": "大树", "사과나무": "苹果树", "{0}개 · {1}시간": "{0}项 · {1}小时", "남은 일 {0}개": "剩余 {0} 项", "남은 일 {0}개 · 총 {1}시간": "剩余 {0} 项 · 共 {1} 小时", "{0}점": "{0}积分", "{0}점 · {1}까지 {2}점 남았어요": "{0}积分 · 距离{1}还差{2}积分", "{0}점 · 최고 등급이에요!": "{0}积分 · 已是最高等级！", "{0} ({1}점~)": "{0}（{1}积分起）", "어떤 과목을 공부해?": "你要学习哪些科目？", "과목 이름을 적고 색을 골라줘. 색은 할 일을 구분하는 데 써.": "填写科目名称并选择颜色，颜色用来区分任务。", "예: 수학": "例如：数学", "나중에 설정에서 언제든 바꿀 수 있어요": "之后可随时在设置中修改", "지금 정한 내용은 설정 탭에서 마음대로 고칠 수 있어. 부담 갖지 마!": "现在选的内容都能在设置页随意修改，不用有压力！", "다음": "下一步", "이전": "上一步", "시작하기": "开始", "생일이 언제야?": "你的生日是哪天？", "나이에 맞는 권장 수면 시간을 계산해서 공부 시간을 짜줄게.": "我们会按你的年龄计算建议睡眠时间，并据此安排学习时间。", "생일": "生日", "일어나는 시간": "起床时间", "학교·수업이 끝나는 시간": "放学/下课时间", "공부 가능한 시간을 정하자": "来设定可学习的时间", "수면 시간을 지키도록 추천했어. 마음대로 고쳐도 돼.": "已为保证睡眠时间而推荐，可自行修改。", "{0}세 · 권장 수면 {1}시간 · 취침 {2}": "{0}岁 · 建议睡眠 {1} 小时 · 就寝 {2}", "과목을 하나 이상 입력해줘": "请至少填写一个科目", "생일을 입력해줘": "请输入生日", "올바른 생일이 아니에요": "生日不正确", "공부 가능 시간을 하나 이상 넣어줘": "请至少添加一个学习时段", "수면과 생일": "睡眠与生日", "공부 시간 다시 추천받기": "重新推荐学习时间", "다시 추천했어요": "已重新推荐"}, "es": {"스터디 플래너": "Planificador de estudio", "공부할수록 식물이 자라요": "Estudia más y tu planta crecerá", "로그인": "Iniciar sesión", "회원가입": "Registrarse", "아이디": "Usuario", "영문/숫자 3자 이상": "3 o más letras o números", "닉네임": "Apodo", "표시될 이름": "Nombre visible", "비밀번호": "Contraseña", "6자 이상": "6 o más caracteres", "또는": "o", "Google로 계속하기": "Continuar con Google", "오늘": "Hoy", "오늘 남은 공부 시간": "Tiempo de estudio restante hoy", "캘린더로 알림 받기": "Recibir recordatorios en el calendario", "이번 주 계획": "Plan de esta semana", "할 일 추가": "Añadir tarea", "제목": "Título", "예: 수학 문제집 3단원": "p. ej.: cuaderno de mates, tema 3", "과목": "Asignatura", "마감 날짜": "Fecha límite", "마감 시간": "Hora límite", "예상 소요 시간 (시간)": "Tiempo estimado (horas)", "세부 단계 (한 줄에 하나, 비워도 돼)": "Pasos (uno por línea, opcional)", "문제 풀기\n오답 정리": "Resolver problemas\nRepasar errores", "해야 할 일": "Pendientes", "설정": "Ajustes", "로그아웃": "Cerrar sesión", "포인트 쌓는 법": "Cómo ganar puntos", "마감 7일 이상 전에 완료": "Completada 7+ días antes", "5일 전": "5 días antes", "· 3일 전": "· 3 días", "· 1일 전": "· 1 día", "마감 당일": "Día límite", "마감이 지난 뒤 완료": "Completada tras el plazo", "언어": "Idioma", "+ 과목 추가": "+ Añadir asignatura", "평일 공부 가능 시간": "Horas de estudio entre semana", "수업, 식사, 취침 시간은 넣지 마. \"핵심\"은 먼저 채울 시간이야.": "No incluyas clases, comidas ni sueño. Las franjas \"Clave\" se llenan primero.", "주말 공부 가능 시간": "Horas de estudio en fin de semana", "+ 시간 추가": "+ Añadir franja", "데이터": "Datos", "모든 데이터 초기화": "Restablecer todos los datos", "시간": "h", "남은 공부": "Estudio restante", "배정 없음": "Nada programado", "비어 있는 날이야": "Un día libre", "오늘 남은 시간에 배정된 할 일이 없어.<br>할 일 추가 탭에서 추가해봐.": "No hay nada programado para el resto de hoy.<br>Añade tareas en la pestaña Añadir tarea.", "할 일이 없어요. 할 일 추가 탭에서 넣어봐.": "Aún no hay tareas. Añade algunas en la pestaña Añadir tarea.", "삭제": "Eliminar", "핵심": "Clave", "새 과목": "Nueva asignatura", "모든 데이터를 초기화할까요?": "¿Restablecer todos los datos?", "초기화했어요": "Datos restablecidos", "제목을 입력해줘": "Escribe un título", "할 일을 추가했어요": "Tarea añadida", "알림 받을 할 일이 없어요": "No hay tareas para recordar", "아이디는 3자 이상이어야 해요": "El usuario debe tener al menos 3 caracteres", "비밀번호는 6자 이상이어야 해요": "La contraseña debe tener al menos 6 caracteres", "이미 있는 아이디예요": "Ese usuario ya existe", "이메일 또는 비밀번호가 맞지 않아요": "Usuario o contraseña incorrectos", "가입을 환영해요": "¡Bienvenido!", "구글 로그인 완료": "Sesión iniciada con Google", "구글 로그인에 실패했어요": "Error al iniciar sesión con Google", "구글 로그인은 GOOGLE_CLIENT_ID 설정 후 사용할 수 있어요": "Configura GOOGLE_CLIENT_ID para usar Google", "씨앗": "Semilla", "새싹": "Brote", "잎": "Hoja", "식물": "Planta", "꽃": "Flor", "큰 나무": "Árbol grande", "사과나무": "Manzano", "{0}개 · {1}시간": "{0} tarea(s) · {1} h", "남은 일 {0}개": "{0} pendientes", "남은 일 {0}개 · 총 {1}시간": "{0} pendientes · {1} h en total", "{0}점": "{0} pts", "{0}점 · {1}까지 {2}점 남았어요": "{0} pts · faltan {2} pts para {1}", "{0}점 · 최고 등급이에요!": "{0} pts · ¡Nivel máximo!", "{0} ({1}점~)": "{0} ({1}+ pts)", "어떤 과목을 공부해?": "¿Qué asignaturas estudias?", "과목 이름을 적고 색을 골라줘. 색은 할 일을 구분하는 데 써.": "Escribe tus asignaturas y elige un color para cada una. Los colores ayudan a distinguir las tareas.", "예: 수학": "p. ej.: Matemáticas", "나중에 설정에서 언제든 바꿀 수 있어요": "Puedes cambiarlo cuando quieras en Ajustes", "지금 정한 내용은 설정 탭에서 마음대로 고칠 수 있어. 부담 갖지 마!": "Lo que elijas ahora se puede editar libremente en Ajustes. ¡Sin presión!", "다음": "Siguiente", "이전": "Atrás", "시작하기": "Empezar", "생일이 언제야?": "¿Cuándo es tu cumpleaños?", "나이에 맞는 권장 수면 시간을 계산해서 공부 시간을 짜줄게.": "Calcularemos el sueño recomendado para tu edad y planificaremos el estudio a partir de ahí.", "생일": "Cumpleaños", "일어나는 시간": "Hora de levantarte", "학교·수업이 끝나는 시간": "Hora en que terminan las clases", "공부 가능한 시간을 정하자": "Define tu horario de estudio", "수면 시간을 지키도록 추천했어. 마음대로 고쳐도 돼.": "Sugerido para que duermas lo suficiente. Puedes editarlo.", "{0}세 · 권장 수면 {1}시간 · 취침 {2}": "{0} años · Sueño recomendado {1} h · Dormir a las {2}", "과목을 하나 이상 입력해줘": "Escribe al menos una asignatura", "생일을 입력해줘": "Escribe tu cumpleaños", "올바른 생일이 아니에요": "Ese cumpleaños no parece correcto", "공부 가능 시간을 하나 이상 넣어줘": "Añade al menos una franja de estudio", "수면과 생일": "Sueño y cumpleaños", "공부 시간 다시 추천받기": "Volver a sugerir horario", "다시 추천했어요": "Sugerencias actualizadas"}};
+const tr=k=>LANG==='ko'?k:((TR[LANG]&&TR[LANG][k])||TR.en[k]||k);
+const tf=(k,...a)=>tr(k).replace(/\{(\d)\}/g,(_,i)=>a[i]);
+const _orig=new WeakMap();
+function applyLang(){
+  document.documentElement.lang=LANG;document.title=tr('스터디 플래너');
+  const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const ns=[];
+  while(w.nextNode())ns.push(w.currentNode);
+  ns.forEach(n=>{
+    if(n.parentNode.closest('script,style'))return;
+    if(!_orig.has(n)){const k=n.nodeValue.trim();if(!k||!(k in TR.en))return;_orig.set(n,n.nodeValue)}
+    const o=_orig.get(n),k=o.trim();n.nodeValue=LANG==='ko'?o:o.replace(k,()=>tr(k));
+  });
+  document.querySelectorAll('[placeholder]').forEach(e=>{
+    if(e.dataset.ph===undefined)e.dataset.ph=e.getAttribute('placeholder');
+    const k=e.dataset.ph;e.setAttribute('placeholder',tr(k));
+  });
+}
+const DAYS={ko:['일','월','화','수','목','금','토'],en:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']};
+const def=()=>({subjects:[],wd:[],we:[],tasks:[],pts:0,profile:{},onb:false});
+let S=def(),USER=null;
+// 게스트 데이터는 현재 브라우저의 localStorage에 저장합니다.
+// 저장 공간 접근이 차단되었거나 데이터 형식이 잘못된 경우에도 앱이 중단되지 않도록 처리합니다.
+function loadGuestData(){
+  try{
+    const raw=localStorage.getItem(KEY+':guest');
+    if(!raw)return def();
+    const parsed=JSON.parse(raw);
+    if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))return def();
+    return {...def(),...parsed,
+      subjects:Array.isArray(parsed.subjects)?parsed.subjects:[],
+      wd:Array.isArray(parsed.wd)?parsed.wd:[],
+      we:Array.isArray(parsed.we)?parsed.we:[],
+      tasks:Array.isArray(parsed.tasks)?parsed.tasks:[],
+      profile:parsed.profile&&typeof parsed.profile==='object'?parsed.profile:{},
+      pts:Number.isFinite(Number(parsed.pts))?Number(parsed.pts):0
+    };
+  }catch(e){
+    console.warn('Guest data could not be loaded',e);
+    return def();
+  }
+}
+const save=()=>{
+  if(!USER)return;
+  if(USER.provider==='guest'){
+    try{localStorage.setItem(KEY+':guest',JSON.stringify(S))}catch(e){}
+    return;
+  }
+  const uid=USER.uid;
+  if(!uid)return;
+  const snapshot=JSON.parse(JSON.stringify(S));
+  cloudSaveQueue=cloudSaveQueue.then(()=>db.collection('users').doc(uid).collection('planner').doc('main').set(snapshot))
+    .catch(e=>{console.error('Firestore save failed',e);toast('클라우드 저장에 실패했어요. 인터넷 연결을 확인해 주세요.');});
+};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const col=n=>(S.subjects.find(x=>x.n===n)||{c:'#999'}).c;
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const md=d=>`${d.getMonth()+1}/${d.getDate()} (${d.toLocaleDateString(LANG,{weekday:'short'})})`;
+const toast=m=>{const t=$('toast');t.textContent=tr(m);t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)};
+const mins=t=>{const[a,b]=t.split(':').map(Number);return a*60+b};
+
+function slotsFor(d){return (d.getDay()%6===0)?S.we:S.wd}
+function availHours(d,fromNow){
+  const now=new Date();let total=0;
+  slotsFor(d).forEach(x=>{
+    let s=mins(x.s),e=mins(x.e);
+    if(fromNow){s=Math.max(s,now.getHours()*60+now.getMinutes())}
+    if(e>s)total+=(e-s)/60;
+  });return total;
+}
+function planFor(d){
+  const key=iso(d);
+  return S.tasks.filter(t=>!t.done&&t.due>=key).sort((a,b)=>a.due.localeCompare(b.due)||a.dueTime.localeCompare(b.dueTime));
+}
+
+function taskRow(t,withSteps){
+  const steps=withSteps&&t.steps.length?`<ul class="steps">${t.steps.map(s=>`<li>· ${esc(s)}</li>`).join('')}</ul>`:'';
+  return `<div class="task ${t.done?'done':''}">
+    <i class="dot" style="background:${col(t.subject)}"></i>
+    <div class="t"><b>${esc(t.title)}</b><span>${esc(t.subject)} · ${t.due.slice(5).replace('-','/')} ${t.dueTime} · ${t.hours}${tr('시간')}</span>${steps}</div>
+    <button class="chk ${t.done?'on':''}" data-done="${t.id}">${t.done?'✓':''}</button>
+    <button class="mini danger" data-del="${t.id}">${tr('삭제')}</button></div>`;
+}
+
+function render(){
+  const today=new Date();
+  const left=availHours(today,true),all=availHours(today,false)||1;
+  $('todayMeta').textContent=`${md(today)} · ${tr('남은 공부')} ${left.toFixed(left%1?1:0)}${tr('시간')}`;
+  $('heroHours').textContent=left.toFixed(left%1?1:0)+tr('시간');
+  $('heroBar').style.width=Math.min(100,left/all*100)+'%';
+
+  const tl=planFor(today).slice(0,5);
+  $('todayList').innerHTML=tl.length?tl.map(t=>taskRow(t,true)).join('')
+    :'<p class="empty">'+tr('오늘 남은 시간에 배정된 할 일이 없어.<br>할 일 추가 탭에서 추가해봐.')+'</p>';
+
+  let wk='';
+  for(let i=1;i<=6;i++){
+    const d=new Date();d.setDate(d.getDate()+i);
+    const key=iso(d);const ts=S.tasks.filter(t=>!t.done&&t.due===key);
+    wk+=`<details><summary>${md(d)}<em>${ts.length?tf('{0}개 · {1}시간',ts.length,ts.reduce((a,t)=>a+t.hours,0)):tr('배정 없음')}</em></summary>
+      <div class="body">${ts.length?ts.map(t=>taskRow(t,true)).join(''):'<p class="empty">'+tr('비어 있는 날이야')+'</p>'}</div></details>`;
+  }
+  $('weekList').innerHTML=wk;
+
+  const open=S.tasks.filter(t=>!t.done).sort((a,b)=>a.due.localeCompare(b.due));
+  const sum=open.reduce((a,t)=>a+t.hours,0);
+  $('todoMeta').textContent=(open.length?tf('남은 일 {0}개 · 총 {1}시간',open.length,sum):tf('남은 일 {0}개',open.length));
+  $('todoList').innerHTML=open.length?open.map(t=>taskRow(t,true)).join(''):'<p class="empty">'+tr('할 일이 없어요. 할 일 추가 탭에서 넣어봐.')+'</p>';
+
+  $('fSubject').innerHTML=S.subjects.map(s=>`<option>${esc(s.n)}</option>`).join('');
+
+  $('subjList').innerHTML=S.subjects.map((s,i)=>`<div class="srow">
+    <input type="color" value="${s.c}" data-sc="${i}"><input value="${esc(s.n)}" data-sn="${i}">
+    <button class="mini danger" data-sd="${i}">${tr('삭제')}</button></div>`).join('');
+  const slotHtml=(arr,k)=>arr.map((x,i)=>`<div class="srow">
+    <input type="time" value="${x.s}" data-k="${k}" data-i="${i}" data-f="s"><span>~</span>
+    <input type="time" value="${x.e}" data-k="${k}" data-i="${i}" data-f="e">
+    <label class="core"><input type="checkbox" ${x.k?'checked':''} data-k="${k}" data-i="${i}" data-f="k">${tr('핵심')}</label>
+    <button class="mini danger" data-k="${k}" data-x="${i}">${tr('삭제')}</button></div>`).join('');
+  $('wdList').innerHTML=slotHtml(S.wd,'wd');
+  $('weList').innerHTML=slotHtml(S.we,'we');
+  const P=S.profile||{};$('sBirth').value=P.birth||'';$('sWake').value=P.wake||'07:00';
+  $('sInfo').textContent=P.birth?infoLine(P):'';
+  renderProfile();
+}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.v){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    $('v-'+b.dataset.v).classList.add('active');
+    document.querySelectorAll('nav button').forEach(n=>n.classList.toggle('active',n===b));
+    scrollTo(0,0);return;
+  }
+  if(b.dataset.done){const t=S.tasks.find(x=>x.id==b.dataset.done);t.done=!t.done;
+    if(t.done){t.pts=pointsFor(t);S.pts=(S.pts||0)+t.pts;toast(tf('{0}점',(t.pts>0?'+':'')+t.pts))}
+    else{S.pts=(S.pts||0)-(t.pts||0);t.pts=0}
+    save();render();return}
+  if(b.dataset.del){S.tasks=S.tasks.filter(x=>x.id!=b.dataset.del);save();render();return}
+  if(b.dataset.sd){S.subjects.splice(+b.dataset.sd,1);save();render();return}
+  if(b.dataset.x!==undefined){S[b.dataset.k].splice(+b.dataset.x,1);save();render()}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.sc!==undefined){S.subjects[+t.dataset.sc].c=t.value}
+  else if(t.dataset.sn!==undefined){S.subjects[+t.dataset.sn].n=t.value}
+  else if(t.dataset.f){const x=S[t.dataset.k][+t.dataset.i];x[t.dataset.f]=t.dataset.f==='k'?t.checked:t.value}
+  else return;
+  save();render();
+});
+$('addSubj').onclick=()=>{S.subjects.push({n:tr('새 과목'),c:'#4f6df5'});save();render()};
+$('addWd').onclick=()=>{S.wd.push({s:'20:00',e:'21:00',k:false});save();render()};
+$('addWe').onclick=()=>{S.we.push({s:'14:00',e:'15:00',k:false});save();render()};
+$('resetBtn').onclick=()=>{if(confirm(tr('모든 데이터를 초기화할까요?'))){S=def();save();toast('초기화했어요');startOnb()}};
+$('addBtn').onclick=()=>{
+  const title=$('fTitle').value.trim();
+  if(!title){toast('제목을 입력해줘');return}
+  S.tasks.push({id:Date.now(),title,subject:$('fSubject').value,due:$('fDate').value||iso(new Date()),
+    dueTime:$('fTime').value||'08:00',hours:+$('fHours').value||1,
+    steps:$('fSteps').value.split('\n').map(s=>s.trim()).filter(Boolean),done:false});
+  $('fTitle').value='';$('fSteps').value='';save();render();toast('할 일을 추가했어요');
+};
+$('calBtn').onclick=()=>{
+  const ts=planFor(new Date()).slice(0,5);
+  if(!ts.length){toast('알림 받을 할 일이 없어요');return}
+  const z=n=>String(n).padStart(2,'0');
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//study-planner//KO'];
+  ts.forEach(t=>{const d=t.due.replace(/-/g,'')+'T'+t.dueTime.replace(':','')+'00';
+    ics.push('BEGIN:VEVENT','UID:'+t.id+'@planner','DTSTAMP:'+d,'DTSTART:'+d,'SUMMARY:'+t.title,
+      'BEGIN:VALARM','TRIGGER:-PT30M','ACTION:DISPLAY','DESCRIPTION:'+t.title,'END:VALARM','END:VEVENT')});
+  ics.push('END:VCALENDAR');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([ics.join('\r\n')],{type:'text/calendar'}));
+  a.download='study-planner.ics';a.click();
+};
+$('fDate').value=iso(new Date(Date.now()+864e5));
+
+/* ---------- 식물 등급 ---------- */
+// 다음 등급까지 필요한 포인트: 100, 200, 400, 800, 1600, 3200
+const GRADES=[
+  {n:'씨앗',at:0},{n:'새싹',at:100},{n:'잎',at:300},{n:'식물',at:700},
+  {n:'꽃',at:1500},{n:'큰 나무',at:3100},{n:'사과나무',at:6300}
+];
+function plantSVG(i,size){
+  const soil='<ellipse cx="32" cy="55" rx="21" ry="6" fill="#9a6b45"/><ellipse cx="32" cy="53.5" rx="21" ry="5" fill="#b07d54"/>';
+  const L=(d,c)=>`<path d="${d}" fill="${c||'#58c47a'}"/>`;
+  let g='';
+  if(i===0){
+    g=`<ellipse cx="32" cy="46" rx="6.5" ry="8.5" fill="#8a5a33" transform="rotate(18 32 46)"/>
+       <path d="M30 40c-2 2-3 5-2.5 8" stroke="#c99a6b" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  }else if(i===1){
+    g=`<path d="M32 51V38" stroke="#3f9f60" stroke-width="3" stroke-linecap="round"/>
+       ${L('M32 40C23 41 20 33 22 29c7-1 10 3 10 11z')}${L('M32 38c9 1 12-7 10-11-7-1-10 3-10 11z','#6fd48c')}`;
+  }else if(i===2){
+    g=`<path d="M32 51V24" stroke="#3f9f60" stroke-width="3" stroke-linecap="round"/>
+       ${L('M32 44C21 46 16 37 19 32c9-1 13 4 13 12z')}${L('M32 40c11 2 16-7 13-12-9-1-13 4-13 12z','#6fd48c')}
+       ${L('M32 30C23 31 20 23 22 18c8-1 11 4 10 12z')}${L('M32 27c8 1 12-6 10-11-8 0-11 4-10 11z','#6fd48c')}`;
+  }else if(i===3){
+    g=`<path d="M32 53V32M32 48C27 44 22 40 19 35M32 46C38 41 43 37 46 32" stroke="#3f9f60" stroke-width="3" stroke-linecap="round" fill="none"/>
+       ${L('M32 34C23 33 20 23 25 15c8 1 12 10 7 19z')}${L('M32 32c9-1 13-10 8-18-8 1-12 9-8 18z','#6fd48c')}
+       ${L('M20 37C12 37 8 30 11 23c8 0 12 6 9 14z')}${L('M45 34c8 0 12-7 9-14-8 0-12 6-9 14z','#6fd48c')}`;
+  }else if(i===4){
+    const pet=[[0,-7],[6.7,-2.2],[4.1,5.7],[-4.1,5.7],[-6.7,-2.2]].map(([x,y])=>`<circle cx="${32+x}" cy="${22+y}" r="5.2" fill="#ff8fb1"/>`).join('');
+    g=`<path d="M32 52V28" stroke="#3f9f60" stroke-width="3" stroke-linecap="round"/>
+       ${L('M32 46C24 48 19 42 21 37c7-1 11 3 11 9z')}${L('M32 42c8 2 13-4 11-9-8-1-11 3-11 9z','#6fd48c')}
+       ${pet}<circle cx="32" cy="22" r="4.2" fill="#ffd23f"/>`;
+  }else{
+    g=`<rect x="28" y="30" width="8" height="23" rx="2.5" fill="#7d4f2c"/>
+       <circle cx="32" cy="21" r="17" fill="#3f9a60"/><circle cx="21" cy="28" r="10" fill="#4aa86b"/><circle cx="43" cy="28" r="10" fill="#4aa86b"/><circle cx="32" cy="15" r="9" fill="#58c47a"/>`;
+    if(i===6)g+=[[24,22],[40,24],[32,31],[20,31],[44,32]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="3.6" fill="#ef4b4b"/><circle cx="${x-1}" cy="${y-1.2}" r="1" fill="#ff9a9a"/>`).join('');
+  }
+  return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true">${soil}${g}</svg>`;
+}
+function gradeIndex(pts){let gi=0;GRADES.forEach((g,i)=>{if(pts>=g.at)gi=i});return gi}
+function pointsFor(t){
+  const due=new Date(t.due+'T00:00:00'),now=new Date();now.setHours(0,0,0,0);
+  const days=Math.round((due-now)/864e5);
+  if(days<0)return -5;
+  if(days>=7)return 20;
+  if(days>=5)return 15;
+  if(days>=3)return 10;
+  if(days>=1)return 5;
+  return 1;
+}
+function renderProfile(){
+  if(!USER)return;
+  const pts=Math.max(0,S.pts||0),gi=gradeIndex(pts),g=GRADES[gi],nx=GRADES[gi+1];
+  $('pId').textContent=USER.provider==='guest'?'게스트':(USER.email||USER.name||USER.id);
+  $('pEmoji').innerHTML=plantSVG(gi,56);
+  $('pGrade').textContent=tr(g.n);
+  if(nx){
+    $('pBar').style.width=((pts-g.at)/(nx.at-g.at)*100)+'%';
+    $('pNote').textContent=tf('{0}점 · {1}까지 {2}점 남았어요',pts,tr(nx.n),nx.at-pts);
+  }else{
+    $('pBar').style.width='100%';
+    $('pNote').textContent=tf('{0}점 · 최고 등급이에요!',pts);
+  }
+  $('pLadder').innerHTML=GRADES.map((x,i)=>`<span class="${i<=gi?'on':''} ${i===gi?'cur':''}" title="${tf('{0} ({1}점~)',tr(x.n),x.at)}">${plantSVG(i,i===gi?38:32)}</span>`).join('');
+}
+$('logoSvg').innerHTML=plantSVG(1,64);
+
+/* ---------- Firebase 로그인 및 계정별 데이터 ---------- */
+let mode='login';
+function setMode(m){
+  mode=m;$('tLogin').classList.toggle('on',m==='login');$('tSignup').classList.toggle('on',m==='signup');
+  $('nameBox').hidden=m!=='signup';$('aGo').textContent=tr(m==='login'?'로그인':'회원가입');
+  $('aPw').autocomplete=m==='login'?'current-password':'new-password';$('aErr').textContent='';
+  $('gFallback').hidden=false;$('gFallback').disabled=false;$('gFallback').textContent='Google로 계속하기';
+}
+$('closeAuth').onclick=()=>{$('auth').hidden=true;$('aPw').value='';};
+$('tLogin').onclick=()=>setMode('login');
+$('tSignup').onclick=()=>setMode('signup');
+const err=m=>$('aErr').textContent=tr(m);
+function showSignedInUI(u){
+  $('auth').hidden=true;$('onb').hidden=true;$('appRoot').hidden=false;
+  $('guestActions').hidden=true;$('logoutBtn').hidden=false;
+  $('accountState').textContent=u.provider==='google.com'?'Google 계정 · Firebase 동기화':'Firebase 계정 · 클라우드 동기화';
+  $('fDate').value=iso(new Date(Date.now()+864e5));
+  render();scrollTo(0,0);
+}
+function showGuestUI(){
+  USER={id:'guest',name:'게스트',provider:'guest'};
+  S=loadGuestData();S.onb=true;S.pts=S.pts||0;S.profile=S.profile||{};
+  $('auth').hidden=true;$('onb').hidden=true;$('appRoot').hidden=false;
+  $('guestActions').hidden=false;$('logoutBtn').hidden=true;
+  $('accountState').textContent='현재 기기에서 사용 중';$('pId').textContent='게스트';
+  $('fDate').value=iso(new Date(Date.now()+864e5));render();
+}
+async function enterFirebaseUser(fbUser){
+  const guestSnapshot= pendingGuestData ? JSON.parse(JSON.stringify(pendingGuestData)) : null;
+  pendingGuestData=null;
+  const provider=fbUser.providerData?.[0]?.providerId||'password';
+  USER={id:fbUser.uid,uid:fbUser.uid,email:fbUser.email||'',name:fbUser.displayName||fbUser.email||'사용자',provider};
+  try{
+    const ref=db.collection('users').doc(fbUser.uid).collection('planner').doc('main');
+    const snap=await ref.get();
+    if(snap.exists){S=snap.data();}
+    else {
+      S=guestSnapshot||def();S.pts=S.pts||0;S.profile=S.profile||{};
+      await ref.set(JSON.parse(JSON.stringify(S)));
+    }
+    if(!S||typeof S!=='object')S=def();
+    S.pts=S.pts||0;S.profile=S.profile||{};
+    if(!S.onb){startOnb();return;}
+    showSignedInUI(USER);
+  }catch(e){
+    console.error('Firestore load failed',e);
+    err('공부 데이터를 불러오지 못했어요. Firestore 규칙과 인터넷 연결을 확인해 주세요.');
+    // Keep authenticated state, but do not silently fall back to another account's local data.
+    $('auth').hidden=false;$('appRoot').hidden=true;
+  }
+}
+async function leave(){
+  try{await auth.signOut();}catch(e){console.error(e);err('로그아웃에 실패했어요');}
+}
+$('logoutBtn').onclick=leave;
+$('openLogin').onclick=()=>openAuth('login');
+$('openSignup').onclick=()=>openAuth('signup');
+function openAuth(m){
+  $('auth').hidden=false;setMode(m);
+  $('aId').value='';$('aPw').value='';$('aName').value='';$('aErr').textContent='';
+}
+function authErrorMessage(e){
+  const c=e?.code||'';
+  if(c.includes('email-already-in-use'))return '이미 가입된 이메일이에요. 로그인해 주세요.';
+  if(c.includes('invalid-email'))return '이메일 주소를 확인해 주세요.';
+  if(c.includes('weak-password'))return '비밀번호는 6자 이상으로 설정해 주세요.';
+  if(c.includes('user-not-found')||c.includes('wrong-password')||c.includes('invalid-credential'))return '이메일 또는 비밀번호가 맞지 않아요.';
+  if(c.includes('popup-blocked'))return '팝업이 차단됐어요. 브라우저에서 팝업을 허용해 주세요.';
+  if(c.includes('unauthorized-domain'))return 'Firebase Authentication의 승인된 도메인에 현재 사이트 주소를 추가해야 해요.';
+  if(c.includes('network-request-failed'))return '네트워크 연결을 확인해 주세요.';
+  return '로그인에 실패했어요. 잠시 후 다시 시도해 주세요. ('+c+')';
+}
+async function submitAuth(){
+  const email=$('aId').value.trim().toLowerCase(),pw=$('aPw').value;
+  if(!/^\S+@\S+\.\S+$/.test(email))return err('올바른 이메일 주소를 입력해 주세요.');
+  if(pw.length<6)return err('비밀번호는 6자 이상이어야 해요');
+  pendingGuestData=USER?.provider==='guest'?JSON.parse(JSON.stringify(S)):null;
+  $('aGo').disabled=true;
+  try{
+    if(mode==='signup'){
+      const cred=await auth.createUserWithEmailAndPassword(email,pw);
+      const displayName=$('aName').value.trim();
+      if(displayName)await cred.user.updateProfile({displayName});
+      try{await cred.user.sendEmailVerification();}catch(e){console.warn('Verification email not sent',e)}
+      toast('회원가입이 완료됐어요. 인증 이메일을 확인해 주세요.');
+    }else{
+      await auth.signInWithEmailAndPassword(email,pw);
+    }
+  }catch(e){pendingGuestData=null;err(authErrorMessage(e));}
+  finally{$('aGo').disabled=false;}
+}
+$('aGo').onclick=submitAuth;
+['aId','aName','aPw'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth()}));
+$('gFallback').onclick=async()=>{
+  pendingGuestData=USER?.provider==='guest'?JSON.parse(JSON.stringify(S)):null;
+  $('gFallback').disabled=true;
+  try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());}
+  catch(e){pendingGuestData=null;err(authErrorMessage(e));}
+  finally{$('gFallback').disabled=false;}
+};
+auth.onAuthStateChanged(fbUser=>{
+  if(fbUser)enterFirebaseUser(fbUser);
+  else showGuestUI();
+});
+
+/* ---------- 수면 · 온보딩 ---------- */
+const ageOf=b=>{const d=new Date(b+'T00:00:00'),n=new Date();let a=n.getFullYear()-d.getFullYear();
+  const m=n.getMonth()-d.getMonth();if(m<0||(m===0&&n.getDate()<d.getDate()))a--;return a};
+// 연령별 권장 수면(NSF/AASM 권고 범위의 중간 값)
+const sleepFor=a=>a<=5?11:a<=13?10:a<=17?9:a<=64?8:7.5;
+const fm=m=>{m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
+function genSlots(age,wake,school){
+  const w=mins(wake),sl=sleepFor(age)*60;
+  let bed=((w-sl)%1440+1440)%1440;if(bed<12*60)bed+=1440;      // 자정 이후 취침 처리
+  const end=Math.min(bed-60,23*60+30);                          // 취침 1시간 전까지만 공부
+  const mk=(a,b,k)=>b-a>=30?{s:fm(a),e:fm(b),k}:null;
+  const sc=mins(school);
+  return{
+    wd:[mk(sc,Math.min(18*60,end),false),mk(Math.max(19*60,sc),end,true)].filter(Boolean),
+    we:[mk(Math.max(10*60,w+120),12*60,true),mk(13*60,Math.min(18*60,end),true),mk(19*60,end,false)].filter(Boolean),
+    bed:fm(bed),sleep:sleepFor(age)};
+}
+function infoLine(P){
+  const a=ageOf(P.birth),g=genSlots(a,P.wake||'07:00',P.school||'16:00');
+  return tf('{0}세 · 권장 수면 {1}시간 · 취침 {2}',a,g.sleep,g.bed);
+}
+$('sBirth').onchange=()=>{const v=$('sBirth').value,a=ageOf(v);
+  if(!v||!(a>=3&&a<=110))return toast('올바른 생일이 아니에요');
+  S.profile=S.profile||{};S.profile.birth=v;save();render()};
+$('sWake').onchange=()=>{S.profile=S.profile||{};S.profile.wake=$('sWake').value||'07:00';save();render()};
+$('sRe').onclick=()=>{const P=S.profile||{};if(!P.birth)return toast('생일을 입력해줘');
+  const g=genSlots(ageOf(P.birth),P.wake||'07:00',P.school||'16:00');
+  S.wd=g.wd;S.we=g.we;save();render();toast('다시 추천했어요')};
+
+const PAL=['#ff6b6b','#ffa94d','#ffd43b','#51cf66','#4dabf7','#9775fa','#f783ac'];
+let OB={step:1,subj:[],wd:[],we:[]};
+function startOnb(){
+  const P=S.profile||{};
+  OB={step:1,subj:S.subjects.length?S.subjects.map(x=>({...x})):[0,1,2].map(i=>({n:'',c:PAL[i]})),
+    birth:P.birth||'',wake:P.wake||'07:00',school:P.school||'16:00',wd:[],we:[],sig:''};
+  $('auth').hidden=true;$('appRoot').hidden=true;$('onb').hidden=false;
+  $('oErr').textContent='';renderOnb();scrollTo(0,0);
+}
+const onbSlots=(arr,k)=>arr.map((x,i)=>`<div class="srow">
+  <input type="time" value="${x.s}" data-ok="${k}" data-oi="${i}" data-of="s"><span>~</span>
+  <input type="time" value="${x.e}" data-ok="${k}" data-oi="${i}" data-of="e">
+  <label class="core"><input type="checkbox" ${x.k?'checked':''} data-ok="${k}" data-oi="${i}" data-of="k">${tr('핵심')}</label>
+  <button class="mini danger" data-ox="${k}:${i}">${tr('삭제')}</button></div>`).join('');
+function renderOnb(){
+  [1,2,3].forEach(n=>{$('oS'+n).hidden=OB.step!==n});
+  document.querySelectorAll('#oDots i').forEach((d,i)=>d.classList.toggle('on',i<OB.step));
+  $('oBack').style.visibility=OB.step===1?'hidden':'visible';
+  $('oNext').textContent=tr(OB.step===3?'시작하기':'다음');
+  $('oSubj').innerHTML=OB.subj.map((s,i)=>`<div class="srow"><input type="color" value="${s.c}" data-oc="${i}">
+    <input value="${esc(s.n)}" placeholder="${esc(tr('예: 수학'))}" data-on="${i}">
+    <button class="mini danger" data-osd="${i}">${tr('삭제')}</button></div>`).join('');
+  $('oBirth').value=OB.birth;$('oWake').value=OB.wake;$('oSchool').value=OB.school;
+  $('oWd').innerHTML=onbSlots(OB.wd,'wd');$('oWe').innerHTML=onbSlots(OB.we,'we');
+  $('oSleep').textContent=OB.age!==undefined?tf('{0}세 · 권장 수면 {1}시간 · 취침 {2}',OB.age,OB.sleep,OB.bed):'';
+}
+$('onb').addEventListener('input',e=>{const t=e.target;
+  if(t.dataset.on!==undefined)OB.subj[+t.dataset.on].n=t.value;
+  else if(t.dataset.oc!==undefined)OB.subj[+t.dataset.oc].c=t.value;
+  else if(t.id==='oBirth')OB.birth=t.value;
+  else if(t.id==='oWake')OB.wake=t.value;
+  else if(t.id==='oSchool')OB.school=t.value;
+  else if(t.dataset.of){const x=OB[t.dataset.ok][+t.dataset.oi];x[t.dataset.of]=t.dataset.of==='k'?t.checked:t.value}
+});
+$('onb').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.osd!==undefined){OB.subj.splice(+b.dataset.osd,1);renderOnb()}
+  else if(b.dataset.ox){const[k,i]=b.dataset.ox.split(':');OB[k].splice(+i,1);renderOnb()}
+});
+$('oAddSubj').onclick=()=>{OB.subj.push({n:'',c:PAL[OB.subj.length%PAL.length]});renderOnb()};
+$('oAddWd').onclick=()=>{OB.wd.push({s:'20:00',e:'21:00',k:false});renderOnb()};
+$('oAddWe').onclick=()=>{OB.we.push({s:'14:00',e:'15:00',k:false});renderOnb()};
+$('oBack').onclick=()=>{OB.step--;$('oErr').textContent='';renderOnb();scrollTo(0,0)};
+$('oNext').onclick=()=>{
+  const E=m=>{$('oErr').textContent=tr(m)};
+  if(OB.step===1){
+    if(!OB.subj.some(s=>s.n.trim()))return E('과목을 하나 이상 입력해줘');
+  }else if(OB.step===2){
+    if(!OB.birth)return E('생일을 입력해줘');
+    const a=ageOf(OB.birth);if(!(a>=3&&a<=110))return E('올바른 생일이 아니에요');
+    const g=genSlots(a,OB.wake,OB.school),sig=[OB.birth,OB.wake,OB.school].join();
+    if(sig!==OB.sig){OB.wd=g.wd;OB.we=g.we;OB.sig=sig}
+    OB.age=a;OB.sleep=g.sleep;OB.bed=g.bed;
+  }else{
+    if(!OB.wd.length&&!OB.we.length)return E('공부 가능 시간을 하나 이상 넣어줘');
+    S.subjects=OB.subj.filter(s=>s.n.trim()).map(s=>({n:s.n.trim(),c:s.c}));
+    S.wd=OB.wd;S.we=OB.we;S.profile={birth:OB.birth,wake:OB.wake,school:OB.school};S.onb=true;save();
+    $('onb').hidden=true;$('appRoot').hidden=false;render();scrollTo(0,0);toast('가입을 환영해요');return;
+  }
+  OB.step++;$('oErr').textContent='';renderOnb();scrollTo(0,0);
+};
+
+/* 언어 */
+document.querySelectorAll('.langpick').forEach(sel=>{
+  sel.innerHTML=Object.entries(LANGS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+  sel.onchange=e=>setLang(e.target.value);
+});
+function setLang(l){
+  LANG=l;try{localStorage.setItem('sp-lang',l)}catch(e){}
+  document.querySelectorAll('.langpick').forEach(x=>x.value=l);
+  applyLang();setMode(mode);
+  if(!$('onb').hidden)renderOnb();
+  if(USER&&!$('appRoot').hidden)render();
+}
+setLang(LANG);
+
+/* Firebase Auth가 로그인 상태를 복원한 뒤 onAuthStateChanged에서 화면을 결정합니다. */
+</script>
+</body>
+</html>
